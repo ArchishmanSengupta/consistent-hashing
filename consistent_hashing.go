@@ -98,6 +98,41 @@ func (c *ConsistentHashing) Add(ctx context.Context, host string) error {
 	return nil
 }
 
+// Get retrieves the host that should handle the given key in the consistent hashing ring.
+// It returns the host name and nil error if successful. If no hosts are added, it returns ErrNoHost.
+// If there's an error generating the hash value or searching for it, it returns an appropriate error.
+// If the host associated with the hash value is not found, it returns ErrHostNotFound.
+func (c *ConsistentHashing) Get(ctx context.Context, key string) (string, error) {
+	// Acquire a read lock to ensure thread safety during read operations.
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	// Return error if no hosts are added
+	if len(c.hostList) == 0 {
+		return "", ErrNoHost
+	}
+
+	// Generate hash value for the given key using the configured hash function.
+	h, err := c.Hash(key)
+	if err != nil {
+		return "Error generating Hash value", err
+	}
+
+	// Find the closest index in the sorted set for the generated hash value.
+	index, err := c.Search(h)
+	if err != nil {
+		return "Error searching for the hash value", err
+	}
+
+	// Retrieve the host associated with the hash value from the hosts map.
+	if host, ok := c.hosts.Load(c.sortedSet[index]); ok {
+		return host.(string), nil
+	}
+
+	// Return an error if the host associated with the hash value is not found.
+	return "", ErrHostNotFound
+}
+
 // Helper Functions
 
 // hash generates a 64-bit hash value for a given key using the configured hash function.
