@@ -1,5 +1,10 @@
 package main
 
+import (
+	"github.com/spaolacci/murmur3"
+	"hash"
+)
+
 // Consistent Hashing with Bounded Loads Implementation
 
 // Todo: Core Data Structures
@@ -15,6 +20,7 @@ package main
 //		- loadMap sync.Map -> map of host to Host struct
 // 		- totalLoad int64 -> Total Load accross all hosts
 //		- hostList []string -> List of all hosts ['uat-server.something.com', 'be-server.something.com']
+// 		- mu sync.RWMutex -> mutex for synchronizing access
 
 // Todo: Core functions:
 /*
@@ -49,6 +55,10 @@ hash function for keys and host names(can use murmur hash)
  - ErrHostNotFound: "host not found"
 */
 
+// stand by for now
+func customMurmurHash() hash.Hash64 {
+	return murmur3.New64()
+}
 func main() {
 	// create a context
 	// ctx := context.Background()
