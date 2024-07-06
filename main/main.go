@@ -42,3 +42,16 @@ hash function for keys and host names(can use murmur hash)
  - maxLoad: maximum allowed load computation
  - removeSlice: remove a hash from the sorted set
 */
+
+// Todo: Error Handling
+/*
+ - ErrNoHost: "no host added"
+ - ErrHostNotFound: "host not found"
+*/
+
+func main() {
+	// create a context
+	// ctx := context.Background()
+
+	// create a new ch instance with default config
+}
