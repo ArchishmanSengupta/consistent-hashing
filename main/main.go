@@ -28,3 +28,17 @@ package main
 7. Remove: Remove a server from the Hash Ring
 8. GetLoads: Get current loads of all hosts
 */
+//
+
+// Todo: Helper functions:
+/*
+ - hash:
+hash function for keys and host names(can use murmur hash)
+ - search:
+	Binary search on the sorted set of hashes
+	(influencer mislead karte reh gaye baccho ko that
+	DSA is not required)
+ - loadOk: check host's load is within bounds
+ - maxLoad: maximum allowed load computation
+ - removeSlice: remove a hash from the sorted set
+*/
