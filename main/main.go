@@ -128,4 +128,12 @@ func main() {
 		log.Fatalf("Failed to decrease load: %v", err)
 	}
 	printLoads(hashRing)
+
+	// get least loaded host for a user
+	fmt.Println("\nGetting least loaded host for user 'archie'")
+	leastLoadedHost, err := hashRing.GetLeast(ctx, "archie")
+	if err != nil {
+		log.Fatalf("Failed to get least loaded host for user 'archie': %v", err)
+	}
+	fmt.Printf("Least loaded host for user 'archie': %s\n", leastLoadedHost)
 }
