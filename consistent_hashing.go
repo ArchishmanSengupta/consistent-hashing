@@ -184,6 +184,48 @@ func (c *ConsistentHashing) GetLeast(ctx context.Context, key string) (string, e
 	return "", ErrHostNotFound
 }
 
+// IncreaseLoad increments the load for a specific host.
+func (c *ConsistentHashing) IncreaseLoad(ctx context.Context, host string) error {
+	// Check if the host exists in the loadMap.
+	if h, ok := c.loadMap.Load(host); ok {
+		// Retrieve the host data from the loaded value.
+		hostData := h.(*Host)
+
+		// Atomically increment the load for the host by 1.
+		atomic.AddInt64(&hostData.Load, 1)
+
+		// Atomically increment the total load across all hosts by 1.
+		atomic.AddInt64(&c.totalLoad, 1)
+
+		// Return nil to indicate successful load increment.
+		return nil
+	}
+
+	// Return an error indicating the host was not found.
+	return ErrHostNotFound
+}
+
+// DecreaseLoad decreases the Load for a specific host.
+func (c *ConsistentHashing) DecreaseLoad(ctx context.Context, host string) error {
+	// Check if the host exists in the loadMap.
+	if h, ok := c.loadMap.Load(host); ok {
+		// Retrieve the host data from the loaded value.
+		hostData := h.(*Host)
+
+		// Atomically decrement the Load for the host by 1.
+		atomic.AddInt64(&hostData.Load, -1)
+
+		// Atomically decrement the total load across all hosts by 1.
+		atomic.AddInt64(&c.totalLoad, -1)
+
+		// Return nil to indicate successful load decrement.
+		return nil
+	}
+
+	// Return an error indicating the host was not found.
+	return ErrHostNotFound
+}
+
 // Helper Functions
 
 // hash generates a 64-bit hash value for a given key using the configured hash function.
@@ -254,6 +296,16 @@ func (c *ConsistentHashing) MaxLoad() int64 {
 
 	// Calculate and return the maximum allowed load per host based on the load factor.
 	return int64(math.Ceil(avgLoadPerNode * c.config.LoadFactor))
+}
+
+// GetLoads returns the current load for all hosts
+func (c *ConsistentHashing) GetLoads() map[string]int64 {
+	loads := make(map[string]int64)
+	c.loadMap.Range(func(key, value interface{}) bool {
+		loads[key.(string)] = value.(*Host).Load
+		return true
+	})
+	return loads
 }
 
 // Hosts returns the list of current hosts
