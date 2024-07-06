@@ -61,7 +61,6 @@ func NewWithConfig(cfg Config) (*ConsistentHashing, error) {
 	}, nil
 }
 
-// adds a host to the hash ring
 // Add adds a new host to the consistent hashing ring, including its virtual nodes,
 // and updates the internal data structures accordingly. It returns an error if the operation fails.
 func (c *ConsistentHashing) Add(ctx context.Context, host string) error {
@@ -114,6 +113,25 @@ func (c *ConsistentHashing) Hash(key string) (uint64, error) {
 
 	// Compute and return the hash value as a 64-bit unsigned integer.
 	return uint64(h.Sum64()), nil
+}
+
+// Search finds the closest index in the sorted set where the given hash key should be placed.
+// It uses binary search to efficiently locate the index.
+// For example, if c.sortedSet = [10, 20, 30, 40, 50] and key = 25,
+// sort.Search determines that key should be inserted after 20 and before 30, returning index 2.
+// The modulo operation (index % len(c.sortedSet)) ensures correct placement within the ring structure
+func (c *ConsistentHashing) Search(key uint64) (int, error) {
+	// Perform a binary search on the sorted set to find the index where key should be inserted.
+	index := sort.Search(len(c.sortedSet), func(i int) bool {
+		return c.sortedSet[i] >= key
+	})
+
+	// Wrap around the index using modulo operation to ensure it stays within bounds.
+	// This is necessary for consistent hashing to handle the circular nature of the ring.
+	index = index % len(c.sortedSet)
+
+	// Return the calculated index where the key should be placed.
+	return index, nil
 }
 
 // Hosts returns the list of current hosts
