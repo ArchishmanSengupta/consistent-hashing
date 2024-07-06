@@ -92,4 +92,15 @@ func main() {
 
 	// show current hosts
 	fmt.Println("HOSTs added to the hash ring: ", hashRing.Hosts())
+
+	// add keys to the hash ring and display the mapped host
+	users := []string{"striver", "arpitbhayani", "piyushgarg", "hkiratsingh", "archie", "sergeybin"}
+	fmt.Println("User to Host Mapping: ")
+	for _, user := range users {
+		host, err := hashRing.Get(ctx, user)
+		if err != nil {
+			log.Fatalf("Failed to get host %s: %v", user, err)
+		}
+		fmt.Printf("User: %s -> Host: %s\n", user, host)
+	}
 }
