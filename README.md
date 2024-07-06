@@ -1,5 +1,5 @@
 # Consistent-Hashing
-A Go library for distributed load balancing using consistent hashing (with bounded loads)
+A [WORK IN PROGRESS] Go library for distributed load balancing using consistent hashing (with bounded loads)
 
 ## Installation
 
