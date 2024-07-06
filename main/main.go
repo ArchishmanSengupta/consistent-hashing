@@ -63,6 +63,15 @@ hash function for keys and host names(can use murmur hash)
 func customMurmurHash() hash.Hash64 {
 	return murmur3.New64()
 }
+
+// printLoads prints the current load of all hosts
+func printLoads(c *ch.ConsistentHashing) {
+	fmt.Println("Current loads:")
+	for host, load := range c.GetLoads() {
+		fmt.Printf("Host: %s -> Load: %d\n", host, load)
+	}
+}
+
 func main() {
 	// create a context for managing request-scoped values, cancellation, and deadlines.
 	// for controlling the lifecycle of a request.
@@ -103,4 +112,12 @@ func main() {
 		}
 		fmt.Printf("User: %s -> Host: %s\n", user, host)
 	}
+
+	// Increment Load on a particular host
+	fmt.Println("Incrementting load on 127.0.0.2")
+	err = hashRing.IncreaseLoad(ctx, "127.0.0.2")
+	if err != nil {
+		log.Fatalf("Failed to increment load: %v", err)
+	}
+	printLoads(hashRing)
 }
