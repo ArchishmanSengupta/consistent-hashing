@@ -120,4 +120,12 @@ func main() {
 		log.Fatalf("Failed to increment load: %v", err)
 	}
 	printLoads(hashRing)
+
+	// Decrease Load on a particular host
+	fmt.Println("Decrease load on 127.0.0.2")
+	err = hashRing.DecreaseLoad(ctx, "127.0.0.2")
+	if err != nil {
+		log.Fatalf("Failed to decrease load: %v", err)
+	}
+	printLoads(hashRing)
 }
