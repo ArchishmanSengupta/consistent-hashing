@@ -81,7 +81,7 @@ func (c *ConsistentHashing) Add(ctx context.Context, host string) error {
 	// Add virtual nodes for the host based on the replication factor.
 	for i := 0; i < c.config.ReplicationFactor; i++ {
 		// Generate a hash value for the virtual node.
-		h, err := c.hash(fmt.Sprintf("%s%d", host, i))
+		h, err := c.Hash(fmt.Sprintf("%s%d", host, i))
 		if err != nil {
 			log.Fatal("key hashing failed", err) // Log fatal error and exit if hashing fails.
 		}
@@ -103,7 +103,7 @@ func (c *ConsistentHashing) Add(ctx context.Context, host string) error {
 
 // hash generates a 64-bit hash value for a given key using the configured hash function.
 // It returns the computed hash value and an error, if any occurred during the hashing process.
-func (c *ConsistentHashing) hash(key string) (uint64, error) {
+func (c *ConsistentHashing) Hash(key string) (uint64, error) {
 	// Create a new hash object using the configured hash function.
 	h := c.config.HashFunction()
 
