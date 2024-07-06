@@ -7,8 +7,10 @@ import (
 	"hash"
 	"hash/fnv"
 	"log"
+	"math"
 	"sort"
 	"sync"
+	"sync/atomic"
 )
 
 // Custom errors
@@ -133,6 +135,55 @@ func (c *ConsistentHashing) Get(ctx context.Context, key string) (string, error)
 	return "", ErrHostNotFound
 }
 
+// GetLeast retrieves the host that should handle the given key in the consistent hashing ring
+// with the least current load. It returns the host name and nil error if successful.
+// If no hosts are added, it returns ErrNoHost. If there's an error generating the hash value
+// or searching for it, it returns an appropriate error. If no host with acceptable load is found,
+// it falls back to returning the initially found host. If no suitable host is found at all,
+// it returns ErrHostNotFound.
+// Bounded Loads: Research Paper: https://research.googleblog.com/2017/04/consistent-hashing-with-bounded-loads.html
+func (c *ConsistentHashing) GetLeast(ctx context.Context, key string) (string, error) {
+	// Acquire a read lock to ensure thread safety during read operations.
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	// Return error if no hosts are added
+	if len(c.hostList) == 0 {
+		return "", ErrNoHost
+	}
+
+	// Generate hash value for the given key using the configured hash function.
+	h, err := c.Hash(key)
+	if err != nil {
+		return "Error generating Hash value", err
+	}
+
+	// Find the closest index in the sorted set for the generated hash value.
+	index, err := c.Search(h)
+	if err != nil {
+		return "Error searching for the hash value", err
+	}
+
+	// Iterate through the sorted set to find the host with the least load.
+	for i := 0; i < len(c.sortedSet); i++ {
+		nextIndex := (index + 1) % len(c.sortedSet)
+		if host, ok := c.hosts.Load(c.sortedSet[nextIndex]); ok {
+			// Check if the host's load is acceptable.
+			if c.LoadOk(host.(string)) {
+				return host.(string), nil
+			}
+		}
+	}
+
+	// Fallback to the initially found host if no hosts with acceptable load are found.
+	if host, ok := c.hosts.Load(c.sortedSet[index]); ok {
+		return host.(string), nil
+	}
+
+	// Return an error if no suitable host is found.
+	return "", ErrHostNotFound
+}
+
 // Helper Functions
 
 // hash generates a 64-bit hash value for a given key using the configured hash function.
@@ -167,6 +218,42 @@ func (c *ConsistentHashing) Search(key uint64) (int, error) {
 
 	// Return the calculated index where the key should be placed.
 	return index, nil
+}
+
+// LoadOk checks if the host's current load is below the maximum allowed load.
+// It returns true if the host's load is acceptable, otherwise false.
+func (c *ConsistentHashing) LoadOk(host string) bool {
+	// Retrieve the host's load data from the loadMap.
+	if h, ok := c.loadMap.Load(host); ok {
+		hostData := h.(*Host)
+		// Compare the host's current load with the maximum allowed load.
+		return hostData.Load < c.MaxLoad()
+	}
+	// Return false if host data is not found.
+	return false
+}
+
+// MaxLoad calculates and returns the maximum allowed load per host based on the current
+// total load across all hosts and the configured load factor.
+func (c *ConsistentHashing) MaxLoad() int64 {
+	// Retrieve the current total load across all hosts.
+	totalLoad := atomic.LoadInt64(&c.totalLoad)
+
+	// Ensure totalLoad is at least 1 to avoid division by zero.
+	if totalLoad == 0 {
+		totalLoad = 1
+	}
+
+	// Calculate the average load per host.
+	avgLoadPerNode := float64(totalLoad) / float64(len(c.hostList))
+
+	// Ensure avgLoadPerNode is at least 1 to avoid division by zero.
+	if avgLoadPerNode == 0 {
+		avgLoadPerNode = 1
+	}
+
+	// Calculate and return the maximum allowed load per host based on the load factor.
+	return int64(math.Ceil(avgLoadPerNode * c.config.LoadFactor))
 }
 
 // Hosts returns the list of current hosts
