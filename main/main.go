@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	ch "github.com/ArchishmanSengupta/consistent-hashing"
 	"github.com/spaolacci/murmur3"
 	"hash"
+	"log"
 )
 
 // Consistent Hashing with Bounded Loads Implementation
@@ -63,7 +65,7 @@ func customMurmurHash() hash.Hash64 {
 }
 func main() {
 	// create a context
-	// ctx := context.Background()
+	ctx := context.Background()
 
 	// create a new ch instance with default config
 	cfg := ch.Config{
@@ -77,5 +79,16 @@ func main() {
 		fmt.Printf("Error creating hash ring: %v\n", err)
 		return
 	}
-	fmt.Println(hashRing)
+
+	// add hosts to the hash ring
+	hosts := []string{"127.0.0.1", "127.0.0.2", "127.0.0.3", "127.0.0.4", "127.0.0.5", "127.0.0.6"}
+	for _, host := range hosts {
+		err := hashRing.Add(ctx, host)
+		if err != nil {
+			log.Fatalf("Failed to add host %s: %v", host, err)
+		}
+	}
+
+	// show current hosts
+	fmt.Println("HOSTs added to the hash ring: ", hashRing.Hosts())
 }
