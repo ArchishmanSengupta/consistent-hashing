@@ -3,8 +3,11 @@ package consistent_hashing
 import (
 	"context"
 	"errors"
+	"fmt"
 	"hash"
 	"hash/fnv"
+	"log"
+	"sort"
 	"sync"
 )
 
@@ -59,20 +62,58 @@ func NewWithConfig(cfg Config) (*ConsistentHashing, error) {
 }
 
 // adds a host to the hash ring
+// Add adds a new host to the consistent hashing ring, including its virtual nodes,
+// and updates the internal data structures accordingly. It returns an error if the operation fails.
 func (c *ConsistentHashing) Add(ctx context.Context, host string) error {
+	// Acquire a lock to ensure thread safety during the update.
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// check if the host already exists
+	// Check if the host already exists in the loadMap.
 	if _, ok := c.loadMap.Load(host); ok {
-		return nil
+		return nil // Host already exists, no further action needed.
 	}
 
-	// add host with 0 load
+	// Add the new host with an initial load of 0.
 	c.loadMap.Store(host, &Host{Name: host, Load: 0})
 	c.hostList = append(c.hostList, host)
 
+	// Add virtual nodes for the host based on the replication factor.
+	for i := 0; i < c.config.ReplicationFactor; i++ {
+		// Generate a hash value for the virtual node.
+		h, err := c.hash(fmt.Sprintf("%s%d", host, i))
+		if err != nil {
+			log.Fatal("key hashing failed", err) // Log fatal error and exit if hashing fails.
+		}
+		// Store the virtual node hash and map it to the host.
+		c.hosts.Store(h, host)
+		// Append the virtual node hash to the sorted set.
+		c.sortedSet = append(c.sortedSet, h)
+	}
+
+	// Sort the hash values in the sorted set.
+	// This allows efficient key lookups using binary search.
+	sort.Slice(c.sortedSet, func(i, j int) bool { return c.sortedSet[i] < c.sortedSet[j] })
+
+	// Return nil to indicate the host was added successfully.
 	return nil
+}
+
+// Helper Functions
+
+// hash generates a 64-bit hash value for a given key using the configured hash function.
+// It returns the computed hash value and an error, if any occurred during the hashing process.
+func (c *ConsistentHashing) hash(key string) (uint64, error) {
+	// Create a new hash object using the configured hash function.
+	h := c.config.HashFunction()
+
+	// Write the key to the hash object. If an error occurs, panic.
+	if _, err := h.Write([]byte(key)); err != nil {
+		panic(err)
+	}
+
+	// Compute and return the hash value as a 64-bit unsigned integer.
+	return uint64(h.Sum64()), nil
 }
 
 // Hosts returns the list of current hosts

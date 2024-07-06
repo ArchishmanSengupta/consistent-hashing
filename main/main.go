@@ -64,7 +64,8 @@ func customMurmurHash() hash.Hash64 {
 	return murmur3.New64()
 }
 func main() {
-	// create a context
+	// create a context for managing request-scoped values, cancellation, and deadlines.
+	// for controlling the lifecycle of a request.
 	ctx := context.Background()
 
 	// create a new ch instance with default config
