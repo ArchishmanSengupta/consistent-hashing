@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	ch "github.com/ArchishmanSengupta/consistent-hashing"
 	"github.com/spaolacci/murmur3"
 	"hash"
 )
@@ -64,4 +66,16 @@ func main() {
 	// ctx := context.Background()
 
 	// create a new ch instance with default config
+	cfg := ch.Config{
+		ReplicationFactor: 3,
+		LoadFactor:        1.5,
+		HashFunction:      customMurmurHash,
+	}
+
+	hashRing, err := ch.NewWithConfig(cfg)
+	if err != nil {
+		fmt.Printf("Error creating hash ring: %v\n", err)
+		return
+	}
+	fmt.Println(hashRing)
 }
