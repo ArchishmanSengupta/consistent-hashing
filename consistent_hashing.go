@@ -226,6 +226,27 @@ func (c *ConsistentHashing) DecreaseLoad(ctx context.Context, host string) error
 	return ErrHostNotFound
 }
 
+// UpdateLoad updates the load for a specific host
+func (c *ConsistentHashing) UpdateLoad(ctx context.Context, host string, load int64) error {
+	// Check if the host exists in the load map
+	if h, ok := c.loadMap.Load(host); ok {
+		// Type assert the retrieved value to *Host
+		hostData := h.(*Host)
+
+		// Update the total load atomically
+		atomic.AddInt64(&c.totalLoad, -hostData.Load+load)
+
+		// Store the new load value for the host atomically
+		atomic.StoreInt64(&hostData.Load, load)
+
+		// Successfully updated the load, return nil error
+		return nil
+	}
+
+	// If the host is not found, return an error
+	return ErrHostNotFound
+}
+
 // Helper Functions
 
 // hash generates a 64-bit hash value for a given key using the configured hash function.

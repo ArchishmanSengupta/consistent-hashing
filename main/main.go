@@ -121,6 +121,14 @@ func main() {
 	}
 	printLoads(hashRing)
 
+	// update load on a host and display loads
+	fmt.Println("\nUpdate load on 127.0.0.2 to 4")
+	err = hashRing.UpdateLoad(ctx, "127.0.0.2", 4)
+	if err != nil {
+		log.Fatalf("Failed to update load: %v", err)
+	}
+	printLoads(hashRing)
+
 	// Decrease Load on a particular host
 	fmt.Println("Decrease load on 127.0.0.2")
 	err = hashRing.DecreaseLoad(ctx, "127.0.0.2")
