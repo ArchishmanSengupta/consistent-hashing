@@ -1,5 +1,5 @@
 # Consistent-Hashing
-A [WORK IN PROGRESS] Go library for distributed load balancing using consistent hashing (with bounded loads)
+A Go library for distributed load balancing using consistent hashing (with bounded loads)
 
 ## Installation
 
@@ -86,6 +86,24 @@ cfg := consistent_hashing.Config{
 }
 
 ch, err := consistent_hashing.NewWithConfig(cfg)
+```
+
+## Benchmarking
+`go test -bench=. -benchmem`
+
+```
+goos: darwin
+goarch: arm64
+pkg: github.com/ArchishmanSengupta/consistent-hashing
+BenchmarkAdd-10                             4626          19088168 ns/op           23748 B/op        895 allocs/op
+BenchmarkGet-10                          6359968               186.5 ns/op            47 B/op          4 allocs/op
+BenchmarkGetLeast-10                         180           6606643 ns/op              24 B/op          3 allocs/op
+BenchmarkIncreaseLoad-10                13727469                83.96 ns/op           13 B/op          1 allocs/op
+BenchmarkRemove-10                           139           8671612 ns/op           17696 B/op       1306 allocs/op
+BenchmarkParallelOperations-10               884           1297025 ns/op             123 B/op          9 allocs/op
+PASS
+ok      github.com/ArchishmanSengupta/consistent-hashing        160.723s
+
 ```
 
 ## API Reference
