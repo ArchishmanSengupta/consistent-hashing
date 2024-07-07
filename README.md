@@ -1,5 +1,3 @@
-Certainly! Here's the updated README file with an additional section on removing hosts:
-
 ---
 
 # Consistent-Hashing
