@@ -117,13 +117,13 @@ func (c *ConsistentHashing) Get(ctx context.Context, key string) (string, error)
 	// Generate hash value for the given key using the configured hash function.
 	h, err := c.Hash(key)
 	if err != nil {
-		return "Error generating Hash value", err
+		return "", err
 	}
 
 	// Find the closest index in the sorted set for the generated hash value.
 	index, err := c.Search(h)
 	if err != nil {
-		return "Error searching for the hash value", err
+		return "", err
 	}
 
 	// Retrieve the host associated with the hash value from the hosts map.
@@ -155,33 +155,51 @@ func (c *ConsistentHashing) GetLeast(ctx context.Context, key string) (string, e
 	// Generate hash value for the given key using the configured hash function.
 	h, err := c.Hash(key)
 	if err != nil {
-		return "Error generating Hash value", err
+		return "", err
 	}
 
 	// Find the closest index in the sorted set for the generated hash value.
 	index, err := c.Search(h)
 	if err != nil {
-		return "Error searching for the hash value", err
+		return "", err
 	}
+
+	// Initialize variables to track the host with the least load.
+	var leastLoadedHost string
+	var minLoad int64 = math.MaxInt64
 
 	// Iterate through the sorted set to find the host with the least load.
 	for i := 0; i < len(c.sortedSet); i++ {
-		nextIndex := (index + 1) % len(c.sortedSet)
+		nextIndex := (index + i) % len(c.sortedSet)
 		if host, ok := c.hosts.Load(c.sortedSet[nextIndex]); ok {
 			// Check if the host's load is acceptable.
 			if c.LoadOk(host.(string)) {
-				return host.(string), nil
+				// Retrieve the load for the host.
+				if h, ok := c.loadMap.Load(host.(string)); ok {
+					load := h.(*Host).Load
+					// Update the least loaded host if found.
+					if load < minLoad {
+						minLoad = load
+						leastLoadedHost = host.(string)
+					}
+				}
 			}
 		}
 	}
 
-	// Fallback to the initially found host if no hosts with acceptable load are found.
-	if host, ok := c.hosts.Load(c.sortedSet[index]); ok {
-		return host.(string), nil
+	// If no suitable host with acceptable load is found, return the initially found host.
+	if leastLoadedHost == "" {
+		if host, ok := c.hosts.Load(c.sortedSet[index]); ok {
+			return host.(string), nil
+		}
 	}
 
 	// Return an error if no suitable host is found.
-	return "", ErrHostNotFound
+	if leastLoadedHost == "" {
+		return "", ErrHostNotFound
+	}
+
+	return leastLoadedHost, nil
 }
 
 // IncreaseLoad increments the load for a specific host.
@@ -370,14 +388,15 @@ func (c *ConsistentHashing) GetLoads() map[string]int64 {
 	return loads
 }
 
-// removeFromSortedSet removes a value from the sorted set
 func (c *ConsistentHashing) removeFromSortedSet(val uint64) {
-	// Perform a binary search to find the index of the value
-	index := sort.Search(len(c.sortedSet), func(i int) bool { return val <= c.sortedSet[i] })
+	// Use binary search to find the index of the value
+	index := sort.Search(len(c.sortedSet), func(i int) bool {
+		return c.sortedSet[i] >= val
+	})
 
-	// If the value is found at the index, remove it
+	// If the value is found, remove it
 	if index < len(c.sortedSet) && c.sortedSet[index] == val {
-		// Remove the value by creating a new slice without the value
+		// Remove the element by slicing
 		c.sortedSet = append(c.sortedSet[:index], c.sortedSet[index+1:]...)
 	}
 }
