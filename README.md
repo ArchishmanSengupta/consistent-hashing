@@ -1,9 +1,14 @@
+Certainly! Here's the updated README file with an additional section on removing hosts:
+
+---
+
 # Consistent-Hashing
-A Go library for distributed load balancing using consistent hashing (with bounded loads)
+
+Consistent-Hashing is a Go library designed for distributed load balancing using consistent hashing, enhanced with bounded loads. It provides efficient key distribution across a set of hosts while ensuring that no single host becomes overloaded beyond a specified limit.
 
 ## Installation
 
-To install the package, use the following command:
+To install the package, execute the following command:
 
 ```bash
 go get github.com/ArchishmanSengupta/consistent-hashing
@@ -11,7 +16,7 @@ go get github.com/ArchishmanSengupta/consistent-hashing
 
 ## Usage
 
-Here's a simple example of how to use the consistent_hashing package:
+Here's a straightforward example of how to utilize the `consistent_hashing` package:
 
 ```go
 package main
@@ -64,19 +69,43 @@ func main() {
 	for host, load := range loads {
 		fmt.Printf("%s: %d\n", host, load)
 	}
+
+	// Remove a host from the ring
+	hostToRemove := "host2"
+	err = ch.Remove(ctx, hostToRemove)
+	if err != nil {
+		log.Printf("Error removing host %s: %v", hostToRemove, err)
+	}
+
+	// Print updated list of hosts
+	fmt.Println("Remaining hosts after removal:", ch.Hosts())
 }
+```
+## Output
+```
+Key key1 assigned to host host4
+Key key2 assigned to host host3
+Key key3 assigned to host host2
+Key key4 assigned to host host1
+Key key5 assigned to host host4
+Current loads:
+host2: 1
+host3: 1
+host4: 2
+host1: 1
+Remaining hosts after removal: [host1 host3 host4]
 ```
 
 ## Features
 
-- Consistent hashing with bounded loads
-- Customizable replication factor and load factor
-- Thread-safe operations
-- Efficient key distribution and host lookup
+- **Consistent Hashing with Bounded Loads**: Distributes load evenly across hosts while limiting maximum host load.
+- **Customizable Configuration**: Adjust replication factor, load factor, and hash function to suit specific requirements.
+- **Thread-Safe Operations**: Ensures safe concurrent access for adding hosts, distributing keys, and managing loads.
+- **Efficient Key Distribution**: Uses consistent hashing principles for efficient key assignment and lookup.
 
 ## Configuration
 
-You can customize the consistent hashing behavior by providing a `Config` struct when creating a new instance:
+Customize consistent hashing behavior by providing a `Config` struct during instance creation:
 
 ```go
 cfg := consistent_hashing.Config{
@@ -89,7 +118,14 @@ ch, err := consistent_hashing.NewWithConfig(cfg)
 ```
 
 ## Benchmarking
-`go test -bench=. -benchmem`
+
+Use the following command to run benchmarks:
+
+```bash
+go test -bench=. -benchmem
+```
+
+Example benchmark results:
 
 ```
 goos: darwin
@@ -103,19 +139,21 @@ BenchmarkRemove-10                           139           8671612 ns/op        
 BenchmarkParallelOperations-10               884           1297025 ns/op             123 B/op          9 allocs/op
 PASS
 ok      github.com/ArchishmanSengupta/consistent-hashing        160.723s
-
 ```
 
 ## API Reference
 
-- `NewWithConfig(cfg Config) (*ConsistentHashing, error)`: Create a new ConsistentHashing instance
-- `Add(ctx context.Context, host string) error`: Add a new host to the ring
-- `Get(ctx context.Context, key string) (string, error)`: Get the host for a given key
-- `GetLeast(ctx context.Context, key string) (string, error)`: Get the least loaded host for a given key
-- `IncreaseLoad(ctx context.Context, host string) error`: Increase the load for a host
-- `DecreaseLoad(ctx context.Context, host string) error`: Decrease the load for a host
-- `GetLoads() map[string]int64`: Get the current loads for all hosts
-- `Hosts() []string`: Get the list of all hosts in the ring
+### Methods
+
+- `NewWithConfig(cfg Config) (*ConsistentHashing, error)`: Creates a new instance of ConsistentHashing with specified configuration.
+- `Add(ctx context.Context, host string) error`: Adds a new host to the consistent hash ring.
+- `Get(ctx context.Context, key string) (string, error)`: Retrieves the host responsible for a given key.
+- `GetLeast(ctx context.Context, key string) (string, error)`: Retrieves the least loaded host for a given key.
+- `IncreaseLoad(ctx context.Context, host string) error`: Increases the load for a specified host.
+- `DecreaseLoad(ctx context.Context, host string) error`: Decreases the load for a specified host.
+- `GetLoads() map[string]int64`: Retrieves the current load for all hosts.
+- `Hosts() []string`: Retrieves the list of all hosts in the ring.
+- `Remove(ctx context.Context, host string) error`: Removes a host from the ring.
 
 ## Examples
 
@@ -130,8 +168,11 @@ ch.Add(ctx, "host1")
 ch.Add(ctx, "host2")
 ch.Add(ctx, "host3")
 
-// Removing a host (not implemented in the current version) [Work In Progress]
-// ch.Remove(ctx, "host2")
+// Removing a host
+err := ch.Remove(ctx, "host2")
+if err != nil {
+    log.Printf("Error removing host: %v", err)
+}
 
 fmt.Println("Current hosts:", ch.Hosts())
 ```
@@ -164,4 +205,8 @@ for host, load := range loads {
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Feel free to submit a Pull Request with your enhancements or bug fixes.
+
+--- 
+
+This README now includes detailed instructions on adding, removing hosts, and showcases example usage scenarios for distributing keys and benchmarking performance. It should provide comprehensive guidance for users looking to integrate and leverage the Consistent-Hashing library effectively.
