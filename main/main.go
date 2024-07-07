@@ -50,7 +50,7 @@ hash function for keys and host names(can use murmur hash)
 	DSA is not required)
  - loadOk: check host's load is within bounds
  - maxLoad: maximum allowed load computation
- - removeSlice: remove a hash from the sorted set
+ - removeFromSortedSet: remove a hash from the sorted set
 */
 
 // Todo: Error Handling
@@ -144,4 +144,12 @@ func main() {
 		log.Fatalf("Failed to get least loaded host for user 'archie': %v", err)
 	}
 	fmt.Printf("Least loaded host for user 'archie': %s\n", leastLoadedHost)
+
+	// remove a host and display hosts and loads
+	fmt.Println("\nRemoving 127.0.0.4")
+	err = hashRing.Remove(ctx, "127.0.0.4")
+	if err != nil {
+		log.Fatalf("Failed to remove host: %v", err)
+	}
+	printLoads(hashRing)
 }

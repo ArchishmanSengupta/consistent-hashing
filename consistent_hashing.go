@@ -247,7 +247,48 @@ func (c *ConsistentHashing) UpdateLoad(ctx context.Context, host string, load in
 	return ErrHostNotFound
 }
 
-// Helper Functions
+// Remove removes a host from the hash ring
+func (c *ConsistentHashing) Remove(ctx context.Context, host string) error {
+	// Acquire the mutex lock to ensure thread-safety
+	c.mu.Lock()
+	// Ensure the mutex is unlocked at the end of the function
+	defer c.mu.Unlock()
+
+	// Check if the host exists in the load map
+	if _, ok := c.loadMap.Load(host); !ok {
+		// If the host is not found, return an error
+		return ErrHostNotFound
+	}
+
+	// Remove the virtual nodes associated with the host
+	for i := 0; i < c.config.ReplicationFactor; i++ {
+		// Generate a hash for the virtual node
+		h, err := c.Hash(fmt.Sprintf("%s%d", host, i))
+		if err != nil {
+			// Log an error and exit if hashing fails
+			log.Fatal("key hashing failed", err)
+		}
+		// Delete the virtual node from the hosts map
+		c.hosts.Delete(h)
+		// Remove the virtual node from the sorted set
+		c.removeFromSortedSet(h)
+	}
+	// Delete the host from the load map
+	c.loadMap.Delete(host)
+
+	// Remove the host from the host list
+	for i, h := range c.hostList {
+		if h == host {
+			// Remove the host from the list by creating a new slice without the host
+			c.hostList = append(c.hostList[:i], c.hostList[i+1:]...)
+			break
+		}
+	}
+	// Return nil indicating successful removal
+	return nil
+}
+
+// --------------------------------- Helper Functions ---------------------------------
 
 // hash generates a 64-bit hash value for a given key using the configured hash function.
 // It returns the computed hash value and an error, if any occurred during the hashing process.
@@ -327,6 +368,18 @@ func (c *ConsistentHashing) GetLoads() map[string]int64 {
 		return true
 	})
 	return loads
+}
+
+// removeFromSortedSet removes a value from the sorted set
+func (c *ConsistentHashing) removeFromSortedSet(val uint64) {
+	// Perform a binary search to find the index of the value
+	index := sort.Search(len(c.sortedSet), func(i int) bool { return val <= c.sortedSet[i] })
+
+	// If the value is found at the index, remove it
+	if index < len(c.sortedSet) && c.sortedSet[index] == val {
+		// Remove the value by creating a new slice without the value
+		c.sortedSet = append(c.sortedSet[:index], c.sortedSet[index+1:]...)
+	}
 }
 
 // Hosts returns the list of current hosts
