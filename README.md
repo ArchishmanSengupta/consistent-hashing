@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/yourusername/consistent-hashing"
+	"github.com/ArchishmanSengupta/consistent-hashing"
 )
 
 func main() {
