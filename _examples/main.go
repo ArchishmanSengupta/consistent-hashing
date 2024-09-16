@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	ch "github.com/ArchishmanSengupta/consistent-hashing"
-	"github.com/spaolacci/murmur3"
 	"hash"
 	"log"
+
+	ch "github.com/ArchishmanSengupta/consistent-hashing"
+	"github.com/spaolacci/murmur3"
 )
 
 // stand by for now
